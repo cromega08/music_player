@@ -2,6 +2,7 @@ from ast import match_case
 from pytube import YouTube as yt
 import sounddevice as sd
 import soundfile as sf
+import pydub as pd
 import os
 
 class started():
@@ -31,13 +32,25 @@ class downloader():
 
         video = yt(self.url)
 
-        stream = video.streams.first()
+        stream = video.streams.get_audio_only("mp4")
 
         stream.download(output_path=self.download_dir)
 
-        video_suffix = stream.subtype
+        self.convert(video.title, stream.subtype)
 
-        self.output(f"{video.title}.{video_suffix}")
+        self.remove(video.title, stream.subtype)
+
+        self.output(f"{video.title}.{stream.subtype}")
+
+    def convert(self, video_name, video_suffix):
+
+        song = pd.AudioSegment.from_file(f"{self.download_dir}/{video_name}.{video_suffix}", video_suffix)
+
+        song.export(f"{self.download_dir}/{video_name}.wav", "wav")
+
+    def remove(self, video_name, video_suffix):
+
+        os.remove(f"{self.download_dir}/{video_name}.{video_suffix}")
 
     def output(self, video_filepath=str):
         
@@ -63,9 +76,9 @@ class player():
     def play(self, song_number=int):
 
         song = self.music[int(song_number)]
-
-        fr, sr= sf.read(f"{self.download_dir}/{song}")
-        sd.play(fr, sr,)
+        data, fr = sf.read(f"{self.download_dir}/{song}")
+        sd.play(data, fr)
+        sd.wait()
 
 class app():
 
@@ -97,6 +110,26 @@ class app():
                 downloads = downloader(url, self.download_dir)
 
                 downloads.download_stream()
+
+            case _:
+
+                print("Ingrese los valores solicitados")
+                
+                self.exec()
+
+    def clear_screen(self, wait = False, system = os.name):
+
+        if wait == True: os.system("pause")
+
+        match system:
+
+            case "nt":
+
+                os.system("cls")
+
+            case _:
+
+                os.system("clear")
 
 
 app().exec()
