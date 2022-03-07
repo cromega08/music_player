@@ -1,7 +1,7 @@
-import mimetypes
+from ast import match_case
 from pytube import YouTube as yt
-from playsound import playsound as ps
-from bs4 import BeautifulSoup as bs
+import sounddevice as sd
+import soundfile as sf
 import os
 
 class started():
@@ -18,7 +18,9 @@ class started():
 
             os.mkdir(download_dir)
 
-class downloads():
+        return download_dir
+
+class downloader():
 
     def __init__(self, url, download_dir):
 
@@ -33,9 +35,7 @@ class downloads():
 
         stream.download(output_path=self.download_dir)
 
-        stream.includes_audio_track
-
-        video_suffix = bs(stream.get_file_path).get(mimetypes)
+        video_suffix = stream.subtype
 
         self.output(f"{video.title}.{video_suffix}")
 
@@ -43,13 +43,60 @@ class downloads():
         
         print(f"{video_filepath} was downloaded")
         
-
-url = "https://music.youtube.com/watch?v=GtPLYvYeZ_4&feature=share"
-
 class player():
 
     def __init__(self, download_dir):
         
         self.download_dir = download_dir
+        self.music = os.listdir(self.download_dir)
 
-        for music in os.listdir(download_dir): print(music)
+    def songs_listed(self):
+
+        for songs in self.music: print(f"{self.music.index(songs)+1}. {songs}")
+
+        choose = input("Song number: ")
+
+        assert choose.isnumeric
+
+        return int(choose)-1
+
+    def play(self, song_number=int):
+
+        song = self.music[int(song_number)]
+
+        fr, sr= sf.read(f"{self.download_dir}/{song}")
+        sd.play(fr, sr,)
+
+class app():
+
+    def __init__(self):
+
+        first = started()
+        
+        self.current = first.current
+        self.download_dir = first.check_download_dir()
+
+    def exec(self):
+
+        url = int(input("1. Play music downloaded\n2. Download music from YouTube\n\nOption: "))
+        
+        match url:
+
+            case 1:
+
+                sound = player(self.download_dir)
+
+                song = sound.songs_listed()
+
+                sound.play(song)
+
+            case 2:
+
+                url = input("URL: ")
+
+                downloads = downloader(url, self.download_dir)
+
+                downloads.download_stream()
+
+
+app().exec()
