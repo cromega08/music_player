@@ -34,7 +34,7 @@ class started():
             open(".ffmpeg_extensions.txt", "w").write(file.content)
         
         return ffmpeg_extensions
-        
+
 class files():
 
     def __init__(self, download_dir, op_system):
@@ -64,7 +64,7 @@ class files():
 
         if os.path.isdir(abs_path):
 
-
+            dirs = os.listdir(abs_path)
 
             os.system(f"{comm} {abs_path}")
     
