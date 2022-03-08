@@ -1,3 +1,5 @@
+#GPL-3.0-or-later
+
 from ast import match_case
 from genericpath import isdir, isfile
 from pytube import YouTube as yt
