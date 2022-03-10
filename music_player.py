@@ -2,8 +2,9 @@ from ast import match_case
 from genericpath import isdir, isfile
 from pytube import YouTube as yt
 import sounddevice as sd
-import soundfile as sf
+from soundfile import SoundFile as sf
 import pydub as pd
+import keyboard as key
 import requests
 import os
 
@@ -13,6 +14,7 @@ class started():
         
         self.current = os.getcwd()
         self.download_dir = self.check_download_dir()
+        self.ffmpeg_extensions = self.check_ffmpeg_extensions()
         self.op_system = os.name
 
     def check_download_dir(self):
@@ -29,9 +31,12 @@ class started():
 
         if os.path.exists(ffmpeg_extensions) == False:
 
-            file = requests.get("https://raw.githubusercontent.com/pietrop/ffmpeg_formats_list/master/ffmpeg_extentions.js")
+            file = requests.get("https://raw.githubusercontent.com/pietrop/ffmpeg_formats_list/master/ffmpeg_extentions.js", allow_redirects=True)
 
-            open(".ffmpeg_extensions.txt", "w").write(file.content)
+            with open(".ffmpeg_extensions.txt", "w") as extensions:
+                
+                refined_text = str(file.content).replace("module.exports= ", "")
+                extensions.write(refined_text)
         
         return ffmpeg_extensions
 
@@ -54,7 +59,7 @@ class files():
 
         else: return file_name
 
-    def copy(self, abs_path):
+    def copy(self, abs_path, ffmpeg_extensions):
 
         match self.op_system:
 
@@ -62,11 +67,40 @@ class files():
 
             case _: comm = "cp"
 
-        if os.path.isdir(abs_path):
+        if os.path.isfile(abs_path): 
+            
+            parents, file, suffix = self.extract(abs_path)
 
-            dirs = os.listdir(abs_path)
+            if suffix in open(ffmpeg_extensions, "r").read():
 
-            os.system(f"{comm} {abs_path}")
+                new_location = os.path.join(self.download_dir, file, suffix)
+                
+                os.system(f"{comm} {abs_path} {new_location}")
+
+                self.convert(new_location)
+
+                self.remove(new_location)
+            
+            else:
+
+                raise ("An error occurred while converting, no file was found")
+
+        else:
+
+            dir_origin = os.listdir(abs_path)
+
+            for music_files in dir_origin:
+
+                old_location = os.path.join(abs_path, music_files)
+                new_location = os.path.join(self.download_dir, music_files)
+
+                os.system(f"{comm} {old_location} {new_location}")
+
+                self.convert(new_location)
+
+                self.remove(new_location)
+        
+        print("Transfer completed")
     
     def convert(self, file_name):
 
@@ -109,7 +143,6 @@ class downloader():
         stream.download(output_path=self.download_dir)
 
         stream_filename = f"{video.title}.{stream.subtype}"
-
         file_handler = files(self.download_dir, self.op_system)
         
         file_handler.convert(stream_filename)
@@ -142,9 +175,10 @@ class player():
     def play(self, song_number=int):
 
         song = self.music[int(song_number)]
-        data, fr = sf.read(f"{self.download_dir}/{song}")
-
-        sd.play(data, fr)
+        
+        data = sf(f"{self.download_dir}/{song}").read()
+        
+        sd.play(data)
 
         sd.wait()
 
@@ -156,25 +190,28 @@ class app():
 
         self.current = directories.current
         self.download_dir = directories.download_dir
+        self.ffmpeg_extensions = directories.ffmpeg_extensions
         self.op_system = directories.op_system
 
     def exec(self):
 
-        option = int(input("1. Play music downloaded\n"\
-                        "2. Download music from YouTube\n"\
-                        "3. Add music on local files\n"\
-                        "\nOption: "))
+        print(self.download_dir)
 
-        self.clear_screen()
-        
+        option = int(input("1. Play music downloaded\n"\
+                            "2. Download music from YouTube\n"\
+                            "3. Add music on local files\n"\
+                            "\nOption: "))
+
+        self.clear_screen(True)
+            
         match option:
 
             case 1:
 
-                sound = player(self.download_dir)
-                song = sound.songs_listed()
+                music = player(self.download_dir)
+                song = music.songs_listed()
 
-                sound.play(song)
+                music.play(song)
 
                 self.clear_screen()
 
@@ -183,44 +220,42 @@ class app():
             case 2:
 
                 url = input("URL: ")
+
+                assert any([domains in url for domains in ["youtube", "youtu.be"]])
+
                 downloads = downloader(url, self.download_dir, self.op_system)
 
                 downloads.download_stream()
 
                 self.clear_screen(True)
 
-            case 3:
-
-                abs_path = input("Introduce the absolute path of directory or file:")
-
-                assert os.path.exists(abs_path) and os.path.isabs(abs_path)
-
-                match abs_path:
-
-                    case os.path.isfile(abs_path):
-
-                        os.system()
-
             case _:
 
                 print("Fill only with the proposed input")
 
                 self.clear_screen(True)
-                
+                    
                 self.exec()
 
     def clear_screen(self, wait = False):
-
-        if wait == True: os.system("pause")
 
         match self.op_system:
 
             case "nt":
 
+                if wait == True: input("Press enter to continue...")
+                    
+                #os.system("pause")
+
                 os.system("cls")
 
-            case _:
+            case "posix":
+
+                if wait == True: input("Press enter to continue...")
+                    
+                #os.system("read -r -s -p 'Pulse any key to continue...' -n 1")
 
                 os.system("clear")
 
 app().exec()
+
