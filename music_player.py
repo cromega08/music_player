@@ -2,14 +2,12 @@
 
 from ast import match_case
 from genericpath import isdir, isfile
-from time import sleep
 from pytube import YouTube as yt
 import sounddevice as sd
 import soundfile as sf
 import pydub as pd
 import requests
 import os
-import re
 
 class started():
 
@@ -77,10 +75,8 @@ class files():
             if suffix in open(ffmpeg_extensions, "r").read():
 
                 new_location = os.path.join(self.download_dir, f"{file}.{suffix}")
-
-                print(new_location)
                 
-                os.system(f"{comm} {abs_path} {new_location}")
+                os.system(f"{comm} {abs_path} {new_location}") #check command for copy or use shutil on next changes
 
                 self.convert(new_location)
 
@@ -108,6 +104,8 @@ class files():
         print("Transfer completed")
     
     def convert(self, file_name):
+
+        #check invalid chars for pd.AudioSegment.from_file, identified moona and ";"
 
         if os.path.isabs(file_name): 
 
@@ -188,7 +186,7 @@ class player():
         
         data, sr = sf.read(f"{self.download_dir}/{song}")
         
-        sd.play(data, sr)
+        sd.play(data, sr)#check fuction with long audio_files
 
         sd.wait()
 
@@ -267,10 +265,8 @@ class app():
 
                 if wait == True: os.system("read -n 1 -s -p 'Pulse any key to continue...'")
 
+                #check this fucking and shitty command that doesnt work
+
                 os.system("clear")
 
 app().exec()
-<<<<<<< HEAD
-
-=======
->>>>>>> 1c14e1b24aff615d3c20667427e2e9dd1fd6debe
