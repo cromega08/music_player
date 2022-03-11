@@ -1,3 +1,5 @@
+#GPL-3.0-or-later
+
 from ast import match_case
 from genericpath import isdir, isfile
 from time import sleep
@@ -268,4 +270,7 @@ class app():
                 os.system("clear")
 
 app().exec()
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1c14e1b24aff615d3c20667427e2e9dd1fd6debe
