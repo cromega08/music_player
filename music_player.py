@@ -1,12 +1,13 @@
 from ast import match_case
 from genericpath import isdir, isfile
+from time import sleep
 from pytube import YouTube as yt
 import sounddevice as sd
-from soundfile import SoundFile as sf
+import soundfile as sf
 import pydub as pd
-import keyboard as key
 import requests
 import os
+import re
 
 class started():
 
@@ -52,7 +53,7 @@ class files():
         if os.path.isfile(file_name):
 
             relatives = file_name.split("/")
-            parents = relatives[:len(relatives) - 2].join()
+            parents = "/".join(relatives[:len(relatives) - 2])
             file, suffix = relatives[len(relatives) - 1].split(".")
 
             return parents, file, suffix
@@ -73,7 +74,9 @@ class files():
 
             if suffix in open(ffmpeg_extensions, "r").read():
 
-                new_location = os.path.join(self.download_dir, file, suffix)
+                new_location = os.path.join(self.download_dir, f"{file}.{suffix}")
+
+                print(new_location)
                 
                 os.system(f"{comm} {abs_path} {new_location}")
 
@@ -83,7 +86,7 @@ class files():
             
             else:
 
-                raise ("An error occurred while converting, no file was found")
+                raise ("An error occurred while converting, no audio file was found")
 
         else:
 
@@ -105,6 +108,8 @@ class files():
     def convert(self, file_name):
 
         if os.path.isabs(file_name): 
+
+            print(os.path.isfile(file_name))
             
             if os.path.isfile(file_name):
                 
@@ -116,9 +121,11 @@ class files():
                 raise ("An error occurred while converting, no file was found")
 
         else:
-            
-            file, suffix = file_name.split(".")
 
+            relatives = file_name.split(".")
+            
+            file, suffix = "".join(relatives[:len(relatives)-1]), relatives[len(relatives)-1]
+            
             song = pd.AudioSegment.from_file(f"{self.download_dir}/{file}.{suffix}", suffix)
 
         song.export(f"{self.download_dir}/{file}.wav", "wav")
@@ -140,9 +147,10 @@ class downloader():
         video = yt(self.url)
         stream = video.streams.get_audio_only("mp4")
 
+        stream_filename = f"{video.title}.{stream.subtype}"
+
         stream.download(output_path=self.download_dir)
 
-        stream_filename = f"{video.title}.{stream.subtype}"
         file_handler = files(self.download_dir, self.op_system)
         
         file_handler.convert(stream_filename)
@@ -176,9 +184,9 @@ class player():
 
         song = self.music[int(song_number)]
         
-        data = sf(f"{self.download_dir}/{song}").read()
+        data, sr = sf.read(f"{self.download_dir}/{song}")
         
-        sd.play(data)
+        sd.play(data, sr)
 
         sd.wait()
 
@@ -194,8 +202,6 @@ class app():
         self.op_system = directories.op_system
 
     def exec(self):
-
-        print(self.download_dir)
 
         option = int(input("1. Play music downloaded\n"\
                             "2. Download music from YouTube\n"\
@@ -223,9 +229,17 @@ class app():
 
                 assert any([domains in url for domains in ["youtube", "youtu.be"]])
 
-                downloads = downloader(url, self.download_dir, self.op_system)
+                downloader(url, self.download_dir, self.op_system).download_stream()
 
-                downloads.download_stream()
+                self.clear_screen(True)
+            
+            case 3:
+
+                abs_path = input("Introduce the abs_path of the file: ")
+
+                assert os.path.isabs(abs_path) and os.path.exists(abs_path)
+
+                files(self.download_dir, self.op_system).copy(abs_path, self.ffmpeg_extensions)
 
                 self.clear_screen(True)
 
@@ -243,17 +257,13 @@ class app():
 
             case "nt":
 
-                if wait == True: input("Press enter to continue...")
-                    
-                #os.system("pause")
+                if wait == True: os.system("pause")
 
                 os.system("cls")
 
             case "posix":
 
-                if wait == True: input("Press enter to continue...")
-                    
-                #os.system("read -r -s -p 'Pulse any key to continue...' -n 1")
+                if wait == True: os.system("read -n 1 -s -p 'Pulse any key to continue...'")
 
                 os.system("clear")
 
