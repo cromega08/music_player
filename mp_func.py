@@ -262,7 +262,7 @@ class app():
 
                         download.print_audio_data(url)
 
-                        aprobe = input("sConfirm the download? (y/n): ")
+                        aprobe = input("Confirm the download? (y/n): ")
 
                         match aprobe:
 
