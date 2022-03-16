@@ -2,7 +2,7 @@
 
 from ast import match_case
 from genericpath import isdir, isfile
-from pytube import YouTube as yt
+from pytube import YouTube as yt, Playlist as pl
 import sounddevice as sd
 import soundfile as sf
 import pydub as pd
@@ -52,8 +52,6 @@ class files():
 
     def extract(self, file_name = str):
 
-        print(os.path.isfile(file_name))
-
         if os.path.isfile(file_name):
 
             relatives = file_name.split("/")
@@ -82,9 +80,7 @@ class files():
 
                 self.remove(new_location)
             
-            else:
-
-                raise Exception("An error occurred while converting, no audio file was found")
+            else: raise Exception("An error occurred while converting, no audio file was found")
 
         else:
 
@@ -131,28 +127,62 @@ class files():
 
 class downloader():
 
-    def __init__(self, url, download_dir, op_system):
+    def __init__(self, download_dir, op_system):
 
-        self.url = url
         self.download_dir = download_dir
         self.op_system = op_system
+        self.file_handler = files(self.download_dir, self.op_system)
 
-    def download_stream(self):
+    def download_audio(self, url, name = str):
 
-        video = yt(self.url)
-        stream = video.streams.get_audio_only("mp4")
-        stream_filename = f"{video.title}.{stream.subtype}".replace(" ", "_")
+        audio = yt(url)
+        stream = audio.streams.get_audio_only("mp4")
+        stream_filename = f"{audio.title}.{stream.subtype}" if name == "non" else f"{name}.{stream.subtype}"
 
-        stream.download(output_path=self.download_dir, filename=stream_filename)
-
-        file_handler = files(self.download_dir, self.op_system)
+        stream.download(output_path = self.download_dir, filename = stream_filename)
         
-        file_handler.convert(stream_filename)
+        self.file_handler.convert(stream_filename)
 
-        file_handler.remove(stream_filename)
+        self.file_handler.remove(stream_filename)
 
-        print(f"{stream_filename.replace('_', ' ')} was downloaded")
-        
+        print(f"{stream_filename} was downloaded")
+
+    def download_playlist(self, url):
+
+        playlist = pl(url)
+
+        for video in playlist.videos:
+
+            stream = video.streams.get_audio_only("mp4")
+            stream_filename = f"{video.title}.{stream.subtype}"
+
+            stream.download(output_path = self.download_dir, filename = stream_filename)
+
+            self.file_handler.convert(stream_filename)
+
+            self.file_handler.remove(stream_filename)
+
+        print(f"{playlist.title} was downloaded")
+    
+    def print_playlist(self, url):
+
+        playlist = pl(url)
+        count = 0
+
+        for video in playlist.videos: count += 1, print(f"{count}. -Stream: {video.title}\n{len(str(count)) + 1} -URL: {playlist.video_urls[count-1]}")
+
+    def print_audio_data(self, url):
+
+        audio = yt(url)
+        stream = audio.streams.get_audio_only("mp4")
+
+        print(f"""Name: {audio.title}\n
+        Author: {audio.author}\n
+        Length: {audio.length}\n
+        Size: {stream.filesize}\n
+        Views and rating: {audio.views} | {audio.rating}\n
+        Date: {audio.publish_date}""")
+
 class player():
 
     def __init__(self, download_dir):
@@ -214,13 +244,103 @@ class app():
 
             case 2:
 
-                url = input("URL: ")
+                option = int(input("1. Download a video\n"\
+                                "2. Download a playlist\n"\
+                                "\nOption: "))
 
-                assert any([domains in url for domains in ["youtube", "youtu.be"]])
+                self.clear_screen()
 
-                downloader(url, self.download_dir, self.op_system).download_stream()
+                download = downloader(self.download_dir, self.op_system)
 
-                self.clear_screen(True)
+                match option:
+
+                    case 1:
+
+                        url = input("Video URL: ")
+
+                        assert any([domains in url for domains in ["youtube", "youtu.be"]]) and "watch" in url
+
+                        download.print_audio_data(url)
+
+                        aprobe = input("Confirm the download? (y/n): ")
+
+                        match aprobe:
+
+                            case "y" | "yes":
+
+                                change = input("Want to rename the file? (y/n): ")
+
+                                match change:
+
+                                    case "y" | "yes": new_name = input("New name (without suffix [ex. '.mp4']): ")
+                                    
+                                    case "n" | "no": new_name = "non"
+
+                                download.download_audio(url, new_name)
+
+                                self.clear_screen(True)
+
+                                self.exec()
+
+                            case "n" | "no":
+
+                                print("Canceling download")
+
+                                self.clear_screen(True)
+
+                                self.exec()
+                            
+                            case _:
+
+                                print("Invalid input")
+
+                                self.clear_screen(True)
+
+                                self.exec()
+                    
+                    case 2:
+                        
+                        url = input("Playlist url")
+
+                        assert any([domains in url for domains in ["youtube", "youtu.be"]]) and "playlist" in url
+
+                        download.print_playlist(url)
+
+                        aprobe = input("Confirm the download? (y/n): ")
+
+                        match aprobe:
+
+                            case "y" | "yes":
+
+                                download.download_playlist(url)
+                                
+                                self.clear_screen(True)
+                                
+                                self.exec()
+
+                            case "n" | "no":
+
+                                print("Canceling download")
+
+                                self.clear_screen(True)
+
+                                self.exec()
+                            
+                            case _:
+
+                                print("Invalid input")
+
+                                self.clear_screen(True)
+
+                                self.exec()
+                        
+                    case _:
+
+                        print("Invalid input")
+
+                        self.clear_screen(True)
+
+                        self.exec()
             
             case 3:
 
@@ -232,9 +352,11 @@ class app():
 
                 self.clear_screen(True)
 
+                self.exec()
+
             case _:
 
-                print("Fill only with the proposed input")
+                print("Invalid input")
 
                 self.clear_screen(True)
                     
