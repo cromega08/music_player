@@ -5,7 +5,7 @@ The current project is a music player made with python language, and is based te
 This allow you to play music on your computer, download music from youtube and manage files on your computer to
 have all of them in one place.
 
-Is only scripted on python and use this libraries:
+Its only scripted on python and use this libraries:
 
   - To play the music: SoundDevice, SoundFile.
   - To download: Pytube, requests.
